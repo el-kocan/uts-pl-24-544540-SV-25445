@@ -1,0 +1,6 @@
+# Ignoralkan file environment
+.env
+
+# Ignoralkan log
+*.log
+laravel_install.log
