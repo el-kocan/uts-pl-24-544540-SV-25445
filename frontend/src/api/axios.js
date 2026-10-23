@@ -1,0 +1,35 @@
+import axios from 'axios'
+
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  },
+})
+
+// Request interceptor: automatically attach Bearer token from localStorage
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Response interceptor: handle 401 globally
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('auth_token')
+      window.location.reload()
+    }
+    return Promise.reject(error)
+  }
+)
+
+export default apiClient
