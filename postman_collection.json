@@ -344,6 +344,53 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Overall status is healthy\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.status).to.eql(\"healthy\");",
+              "});",
+              "",
+              "pm.test(\"Database and cache checks exist and healthy\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.checks.database.status).to.eql(\"healthy\");",
+              "    pm.expect(jsonData.checks.cache.status).to.eql(\"healthy\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        },
+        "description": "Periksa kesehatan sistem secara menyeluruh (Database & Cache)."
+      },
+      "response": []
     }
   ]
 }
