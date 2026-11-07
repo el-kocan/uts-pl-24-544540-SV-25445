@@ -39,19 +39,17 @@ class EquipmentController extends Controller
         ]);
 
         if ($validator->fails()) {
-            // Log terstruktur alur penting: Validasi Gagal (Level: WARNING)
-            // Memuat konteks lengkap: Siapa (actor), Apa (action), Sebab (reason & errors).
-            // TIDAK mencatat password, token, atau data pribadi sensitif.
-            Log::warning('Validasi penambahan alat laboratorium gagal', [
-                'action'        => 'equipment_store_validation',
+            // Log terstruktur: Validasi Gagal (Level: WARNING)
+            // Keamanan: Hapus email, IP, token, dan data pribadi.
+            Log::warning('Validasi data penambahan alat laboratorium gagal', [
+                'action'        => 'equipment_create',
+                'component'     => 'equipment',
                 'actor'         => [
-                    'user_id' => $request->user()?->id,
-                    'email'   => $request->user()?->email,
-                    'ip'      => $request->ip(),
+                    'type' => 'user',
+                    'id'   => $request->user()?->id,
                 ],
                 'failed_fields' => array_keys($validator->errors()->toArray()),
-                'errors'        => $validator->errors()->toArray(),
-                'reason'        => 'Data input tidak memenuhi aturan validasi sistem',
+                'reason'        => 'Aturan validasi atribut peralatan tidak terpenuhi',
             ]);
 
             return response()->json([
@@ -63,24 +61,17 @@ class EquipmentController extends Controller
         try {
             $equipment = Equipment::create($validator->validated());
 
-            // Log terstruktur alur penting: Menyimpan Data (Level: INFO)
-            // Memuat konteks: Siapa (actor), Apa (action), Sebab (reason & equipment data).
-            Log::info('Data alat laboratorium berhasil disimpan ke basis data', [
-                'action'    => 'equipment_store',
-                'actor'     => [
-                    'user_id' => $request->user()?->id,
-                    'email'   => $request->user()?->email,
-                    'ip'      => $request->ip(),
+            // Log terstruktur: Menyimpan Data Berhasil (Level: INFO)
+            // Keamanan: Actor aman (ID user), equipment_id tercatat, tanpa data pribadi.
+            Log::info('Data alat laboratorium berhasil disimpan', [
+                'action'       => 'equipment_create',
+                'component'    => 'equipment',
+                'actor'        => [
+                    'type' => 'user',
+                    'id'   => $request->user()?->id,
                 ],
-                'equipment' => [
-                    'id'            => $equipment->id,
-                    'name'          => $equipment->name,
-                    'category'      => $equipment->category,
-                    'serial_number' => $equipment->serial_number,
-                    'condition'     => $equipment->condition,
-                    'quantity'      => $equipment->quantity,
-                ],
-                'reason'    => 'Validasi berhasil dan data tersimpan ke tabel equipments',
+                'equipment_id' => $equipment->id,
+                'reason'       => 'Peralatan baru berhasil terdaftar di basis data',
             ]);
 
             return response()->json([
@@ -88,16 +79,16 @@ class EquipmentController extends Controller
                 'data'    => $equipment,
             ], 201);
         } catch (\Throwable $e) {
-            // Log terstruktur alur penting: Gagal Menghubungi Basis Data (Level: ERROR)
+            // Log terstruktur: Gagal Basis Data (Level: ERROR)
+            // Keamanan: Tidak mengekspos raw exception message yang dapat membocorkan kredensial DB.
             Log::error('Gagal menyimpan data alat laboratorium ke basis data', [
-                'action'    => 'equipment_store_database',
-                'actor'     => [
-                    'user_id' => $request->user()?->id,
-                    'email'   => $request->user()?->email,
-                    'ip'      => $request->ip(),
-                ],
+                'action'    => 'equipment_create',
                 'component' => 'database',
-                'reason'    => $e->getMessage(),
+                'actor'     => [
+                    'type' => 'user',
+                    'id'   => $request->user()?->id,
+                ],
+                'reason'    => 'Terjadi kesalahan sistem saat menyimpan data ke basis data',
             ]);
 
             throw $e;
@@ -134,18 +125,17 @@ class EquipmentController extends Controller
         ]);
 
         if ($validator->fails()) {
-            // Log terstruktur alur penting: Validasi Pembaruan Gagal (Level: WARNING)
-            Log::warning('Validasi pembaruan alat laboratorium gagal', [
-                'action'        => 'equipment_update_validation',
+            // Log terstruktur: Validasi Pembaruan Gagal (Level: WARNING)
+            Log::warning('Validasi data pembaruan alat laboratorium gagal', [
+                'action'        => 'equipment_update',
+                'component'     => 'equipment',
                 'actor'         => [
-                    'user_id' => $request->user()?->id,
-                    'email'   => $request->user()?->email,
-                    'ip'      => $request->ip(),
+                    'type' => 'user',
+                    'id'   => $request->user()?->id,
                 ],
                 'equipment_id'  => $equipment->id,
                 'failed_fields' => array_keys($validator->errors()->toArray()),
-                'errors'        => $validator->errors()->toArray(),
-                'reason'        => 'Data input pembaruan tidak memenuhi aturan validasi sistem',
+                'reason'        => 'Aturan validasi atribut pembaruan tidak terpenuhi',
             ]);
 
             return response()->json([
@@ -157,16 +147,16 @@ class EquipmentController extends Controller
         try {
             $equipment->update($validator->validated());
 
-            // Log terstruktur: Pembaruan Data Berhasil (Level: INFO)
+            // Log terstruktur: Pembaruan Berhasil (Level: INFO)
             Log::info('Data alat laboratorium berhasil diperbarui', [
                 'action'       => 'equipment_update',
+                'component'    => 'equipment',
                 'actor'        => [
-                    'user_id' => $request->user()?->id,
-                    'email'   => $request->user()?->email,
-                    'ip'      => $request->ip(),
+                    'type' => 'user',
+                    'id'   => $request->user()?->id,
                 ],
                 'equipment_id' => $equipment->id,
-                'reason'       => 'Pembaruan data berhasil disimpan ke basis data',
+                'reason'       => 'Perubahan data peralatan berhasil disimpan ke basis data',
             ]);
 
             return response()->json([
@@ -174,17 +164,16 @@ class EquipmentController extends Controller
                 'data'    => $equipment->fresh(),
             ], 200);
         } catch (\Throwable $e) {
-            // Log terstruktur: Gagal Basis Data saat Update (Level: ERROR)
+            // Log terstruktur: Gagal Basis Data (Level: ERROR)
             Log::error('Gagal memperbarui data alat laboratorium di basis data', [
-                'action'       => 'equipment_update_database',
+                'action'       => 'equipment_update',
+                'component'    => 'database',
                 'actor'        => [
-                    'user_id' => $request->user()?->id,
-                    'email'   => $request->user()?->email,
-                    'ip'      => $request->ip(),
+                    'type' => 'user',
+                    'id'   => $request->user()?->id,
                 ],
                 'equipment_id' => $equipment->id,
-                'component'    => 'database',
-                'reason'       => $e->getMessage(),
+                'reason'       => 'Terjadi kesalahan sistem saat memperbarui data di basis data',
             ]);
 
             throw $e;
@@ -198,20 +187,18 @@ class EquipmentController extends Controller
     {
         try {
             $id = $equipment->id;
-            $serial = $equipment->serial_number;
             $equipment->delete();
 
-            // Log terstruktur: Penghapusan Data Berhasil (Level: INFO)
+            // Log terstruktur: Penghapusan Berhasil (Level: INFO)
             Log::info('Data alat laboratorium berhasil dihapus', [
-                'action'        => 'equipment_destroy',
-                'actor'         => [
-                    'user_id' => $request->user()?->id,
-                    'email'   => $request->user()?->email,
-                    'ip'      => $request->ip(),
+                'action'       => 'equipment_delete',
+                'component'    => 'equipment',
+                'actor'        => [
+                    'type' => 'user',
+                    'id'   => $request->user()?->id,
                 ],
-                'equipment_id'  => $id,
-                'serial_number' => $serial,
-                'reason'        => 'Permintaan penghapusan peralatan diproses dan data dihapus dari basis data',
+                'equipment_id' => $id,
+                'reason'       => 'Data peralatan berhasil dihapus dari basis data',
             ]);
 
             return response()->json([
@@ -219,15 +206,14 @@ class EquipmentController extends Controller
             ], 200);
         } catch (\Throwable $e) {
             Log::error('Gagal menghapus data alat laboratorium dari basis data', [
-                'action'       => 'equipment_destroy_database',
+                'action'       => 'equipment_delete',
+                'component'    => 'database',
                 'actor'        => [
-                    'user_id' => $request->user()?->id,
-                    'email'   => $request->user()?->email,
-                    'ip'      => $request->ip(),
+                    'type' => 'user',
+                    'id'   => $request->user()?->id,
                 ],
                 'equipment_id' => $equipment->id,
-                'component'    => 'database',
-                'reason'       => $e->getMessage(),
+                'reason'       => 'Terjadi kesalahan sistem saat menghapus data dari basis data',
             ]);
 
             throw $e;

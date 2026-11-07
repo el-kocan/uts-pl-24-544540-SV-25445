@@ -22,14 +22,14 @@ class AuthController extends Controller
 
         if (!Auth::attempt($credentials)) {
             // Log terstruktur: Autentikasi Gagal (Level: WARNING)
-            // Keamanan: TIDAK PERNAH mencatat password input.
+            // Keamanan: Hapus email, IP, password, dan token.
             Log::warning('Autentikasi login pengguna gagal', [
-                'action' => 'auth_login',
-                'actor'  => [
-                    'attempted_email' => $request->input('email'),
-                    'ip'              => $request->ip(),
+                'action'    => 'auth_login',
+                'component' => 'auth',
+                'actor'     => [
+                    'type' => 'guest',
                 ],
-                'reason' => 'Email atau password yang dimasukkan salah',
+                'reason'    => 'Kombinasi kredensial email atau kata sandi tidak valid',
             ]);
 
             return response()->json([
@@ -41,15 +41,15 @@ class AuthController extends Controller
         $token = $user->createToken('api-token')->plainTextToken;
 
         // Log terstruktur: Login Berhasil (Level: INFO)
-        // Keamanan: TIDAK PERNAH mencatat token string.
+        // Keamanan: Konteks actor aman (user_id saja), tanpa email, IP, atau token plain text.
         Log::info('Pengguna berhasil melakukan login', [
-            'action' => 'auth_login',
-            'actor'  => [
-                'user_id' => $user->id,
-                'email'   => $user->email,
-                'ip'      => $request->ip(),
+            'action'    => 'auth_login',
+            'component' => 'auth',
+            'actor'     => [
+                'type' => 'user',
+                'id'   => $user->id,
             ],
-            'reason' => 'Kredensial valid dan token akses baru berhasil diterbitkan',
+            'reason'    => 'Kredensial valid dan token akses berhasil diterbitkan',
         ]);
 
         return response()->json([
@@ -79,13 +79,13 @@ class AuthController extends Controller
 
         // Log terstruktur: Logout Berhasil (Level: INFO)
         Log::info('Pengguna berhasil melakukan logout', [
-            'action' => 'auth_logout',
-            'actor'  => [
-                'user_id' => $user?->id,
-                'email'   => $user?->email,
-                'ip'      => $request->ip(),
+            'action'    => 'auth_logout',
+            'component' => 'auth',
+            'actor'     => [
+                'type' => 'user',
+                'id'   => $user?->id,
             ],
-            'reason' => 'Token akses berhasil dicabut dan sesi pengguna diakhiri',
+            'reason'    => 'Token akses berhasil dicabut dan sesi pengguna diakhiri',
         ]);
 
         return response()->json([

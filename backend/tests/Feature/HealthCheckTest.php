@@ -17,6 +17,7 @@ class HealthCheckTest extends TestCase
         $response = $this->getJson('/health');
 
         $response->assertStatus(200)
+            ->assertHeader('Content-Type', 'application/json')
             ->assertJson([
                 'status' => 'healthy',
             ])
@@ -40,32 +41,35 @@ class HealthCheckTest extends TestCase
         $response = $this->getJson('/api/health');
 
         $response->assertStatus(200)
+            ->assertHeader('Content-Type', 'application/json')
             ->assertJson([
                 'status' => 'healthy',
             ]);
     }
 
     /** @test */
-    public function test_health_check_returns_503_when_database_fails(): void
+    public function test_health_check_returns_503_json_when_database_fails_even_without_accept_header(): void
     {
         // Mock DB connection to simulate failure
         DB::shouldReceive('connection')
             ->once()
             ->andThrow(new \Exception('Connection refused: SQLSTATE[HY000] [2002]'));
 
-        $response = $this->getJson('/health');
+        // Request WITHOUT Accept: application/json header to test plain HTTP access (e.g. curl)
+        $response = $this->get('/health');
 
         $response->assertStatus(503)
+            ->assertHeader('Content-Type', 'application/json')
             ->assertJson([
                 'status' => 'unhealthy',
             ]);
 
         $this->assertEquals('unhealthy', $response->json('checks.database.status'));
-        $this->assertStringContainsString('Connection refused', $response->json('checks.database.message'));
+        $this->assertNotEmpty($response->json('checks.database.message'));
     }
 
     /** @test */
-    public function test_health_check_returns_503_when_cache_fails(): void
+    public function test_health_check_returns_503_json_when_cache_fails(): void
     {
         // Mock Cache to simulate failure
         Cache::shouldReceive('put')
@@ -75,11 +79,35 @@ class HealthCheckTest extends TestCase
         $response = $this->getJson('/health');
 
         $response->assertStatus(503)
+            ->assertHeader('Content-Type', 'application/json')
             ->assertJson([
                 'status' => 'unhealthy',
             ]);
 
         $this->assertEquals('unhealthy', $response->json('checks.cache.status'));
-        $this->assertStringContainsString('Cache store unavailable', $response->json('checks.cache.message'));
+        $this->assertNotEmpty($response->json('checks.cache.message'));
+    }
+
+    /** @test */
+    public function test_health_check_returns_503_when_both_database_and_cache_fail(): void
+    {
+        DB::shouldReceive('connection')
+            ->once()
+            ->andThrow(new \Exception('Database down'));
+
+        Cache::shouldReceive('put')
+            ->once()
+            ->andThrow(new \Exception('Cache down'));
+
+        $response = $this->getJson('/health');
+
+        $response->assertStatus(503)
+            ->assertHeader('Content-Type', 'application/json')
+            ->assertJson([
+                'status' => 'unhealthy',
+            ]);
+
+        $this->assertEquals('unhealthy', $response->json('checks.database.status'));
+        $this->assertEquals('unhealthy', $response->json('checks.cache.status'));
     }
 }
