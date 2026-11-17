@@ -1,0 +1,12 @@
+groups:
+  - name: service_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layanan {{ $labels.job }} tidak dapat dijangkau"
+          description: "Target monitoring {{ $labels.instance }} pada job {{ $labels.job }} telah mati selama lebih dari 30 detik."
+          action: "Tindakan pertama: Segera jalankan 'docker compose ps' untuk memeriksa kontainer yang mati, periksa log penyebab kegagalan dengan 'docker compose logs {{ $labels.job }}', dan lakukan pemulihan dengan 'docker compose start {{ $labels.job }}'."
