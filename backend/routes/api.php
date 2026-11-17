@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EquipmentController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\MetricsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +17,9 @@ use Illuminate\Support\Facades\Route;
 
 // Health check endpoint (public, no middleware)
 Route::get('/health', [HealthController::class, 'check']);
+
+// Metrics endpoint (public, Prometheus scraper)
+Route::get('/metrics', [MetricsController::class, 'metrics']);
 
 // Public auth routes (no middleware)
 Route::post('/login', [AuthController::class, 'login']);
